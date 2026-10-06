@@ -18,10 +18,6 @@ import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Inject
 import javax.inject.Singleton
 
-/**
- * Live screen streaming use case.
- * Har X sec pe frame capture karke Supabase pe upload karta hai.
- */
 @Singleton
 class StreamLiveScreenUseCase @Inject constructor(
     @ApplicationContext private val context: Context,
@@ -33,12 +29,9 @@ class StreamLiveScreenUseCase @Inject constructor(
     private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
     private var frameIndex = 0L
 
-    // Frame provider callback — ScreenCaptureService set karega
-    var frameProvider: (suspend () -> ByteArray?)? = null
+    // ⭐ Private — external setter nahi
+    private var frameProvider: (suspend () -> ByteArray?)? = null
 
-    /**
-     * Live stream start karo.
-     */
     suspend operator fun invoke(deviceKey: String): AppResult<Boolean> {
         if (isStreaming.get()) {
             return AppResult.Error(ErrorType.VALIDATION, "Already streaming")
@@ -80,7 +73,6 @@ class StreamLiveScreenUseCase @Inject constructor(
                             else -> {}
                         }
 
-                        // Har 10 frames ke baad purane clean karo
                         if (frameIndex % 10 == 0L) {
                             try {
                                 mediaRepository.cleanOldLiveFrames(deviceKey)
@@ -99,9 +91,6 @@ class StreamLiveScreenUseCase @Inject constructor(
         return AppResult.Success(true)
     }
 
-    /**
-     * Stream band karo.
-     */
     fun stop() {
         if (!isStreaming.get()) return
 
@@ -112,22 +101,14 @@ class StreamLiveScreenUseCase @Inject constructor(
         Logger.i("StreamLive", "Stream stopped")
     }
 
-    /**
-     * Stream status check.
-     */
     fun isActive(): Boolean = isStreaming.get()
 
-    /**
-     * Frame provider set karo (ScreenCaptureService se).
-     */
+    // ⭐ Sirf ye method public hai — koi var setter nahi
     fun setFrameProvider(provider: suspend () -> ByteArray?) {
-        frameProvider = provider
+        this.frameProvider = provider
     }
 
-    /**
-     * Frame provider clear karo.
-     */
     fun clearFrameProvider() {
-        frameProvider = null
+        this.frameProvider = null
     }
 }
