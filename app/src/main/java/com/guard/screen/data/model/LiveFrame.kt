@@ -3,9 +3,6 @@ package com.guard.screen.data.model
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
-/**
- * Live frame — Supabase ke `live_frames` table se match.
- */
 @Serializable
 data class LiveFrame(
     val id: String? = null,
@@ -14,7 +11,7 @@ data class LiveFrame(
     val deviceKey: String,
 
     @SerialName("frame_path")
-    val framePath: String,          // Storage path
+    val framePath: String,
 
     @SerialName("frame_url")
     val frameUrl: String? = null,
@@ -26,9 +23,6 @@ data class LiveFrame(
     val createdAt: String? = null
 )
 
-/**
- * Live frame upload.
- */
 @Serializable
 data class LiveFrameUpload(
     @SerialName("device_key")
