@@ -1,6 +1,7 @@
 package com.guard.screen.core
 
 import android.util.Log
+import com.guard.screen.BuildConfig
 import timber.log.Timber
 
 object Logger {
@@ -58,14 +59,10 @@ object Logger {
         if (initialized) Timber.e(t) else Log.e(TAG, "Error", t)
     }
 
-    /**
-     * Release build mein sirf errors log karta hai.
-     */
     private class ReleaseTree : Timber.Tree() {
         override fun log(priority: Int, tag: String?, message: String, t: Throwable?) {
             if (priority >= Log.ERROR) {
                 Log.e(tag ?: TAG, message, t)
-                // Yahan Crashlytics ya Sentry integrate kar sakte hain
             }
         }
     }
