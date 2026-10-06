@@ -19,6 +19,7 @@ hiltNavigationCompose = "1.2.0"
 
 # Async
 coroutines = "1.8.1"
+kotlinxSerialization = "1.6.3"
 
 # Network
 ktor = "3.0.3"
@@ -83,6 +84,7 @@ hilt-work-compiler = { module = "androidx.hilt:hilt-compiler", version.ref = "hi
 # ============ ASYNC ============
 kotlinx-coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "coroutines" }
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "coroutines" }
+kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerialization" }
 
 # ============ NETWORK ============
 ktor-client-android = { module = "io.ktor:ktor-client-android", version.ref = "ktor" }
