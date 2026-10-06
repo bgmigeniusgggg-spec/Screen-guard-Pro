@@ -21,14 +21,15 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -36,10 +37,6 @@ import com.guard.screen.ui.theme.Error
 import com.guard.screen.ui.theme.Info
 import com.guard.screen.ui.theme.Success
 import com.guard.screen.ui.theme.Warning
-
-// ============================================
-// PRIMARY BUTTON
-// ============================================
 
 @Composable
 fun PrimaryButton(
@@ -77,10 +74,6 @@ fun PrimaryButton(
     }
 }
 
-// ============================================
-// SECONDARY BUTTON
-// ============================================
-
 @Composable
 fun SecondaryButton(
     text: String,
@@ -103,10 +96,6 @@ fun SecondaryButton(
         )
     }
 }
-
-// ============================================
-// PERMISSION STATUS ROW
-// ============================================
 
 @Composable
 fun PermissionStatusRow(
@@ -147,10 +136,6 @@ fun PermissionStatusRow(
         }
     }
 }
-
-// ============================================
-// INFO CARD
-// ============================================
 
 @Composable
 fun InfoCard(
@@ -202,10 +187,6 @@ fun InfoCard(
     }
 }
 
-// ============================================
-// ALERT BANNER
-// ============================================
-
 @Composable
 fun AlertBanner(
     message: String,
@@ -252,10 +233,6 @@ fun AlertBanner(
 
 enum class AlertType { SUCCESS, ERROR, WARNING, INFO }
 
-// ============================================
-// LOADING
-// ============================================
-
 @Composable
 fun LoadingIndicator(
     modifier: Modifier = Modifier,
@@ -266,7 +243,7 @@ fun LoadingIndicator(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        androidx.compose.material3.CircularProgressIndicator(
+        CircularProgressIndicator(
             color = MaterialTheme.colorScheme.primary
         )
         Spacer(modifier = Modifier.height(12.dp))
