@@ -44,14 +44,10 @@ Thumbs.db
 .externalNativeBuild
 .cxx/
 
-# ⚠️ IMPORTANT — Secrets
-app/google-services.json
+# Secrets
 .env
 .env.local
 secrets.properties
-
-# Firebase
-.firebase/
 
 # Supabase
 .supabase/
