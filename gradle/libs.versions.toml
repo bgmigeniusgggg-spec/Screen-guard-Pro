@@ -4,7 +4,6 @@ agp = "8.5.0"
 kotlin = "1.9.24"
 ksp = "1.9.24-1.0.20"
 hilt = "2.51.1"
-googleServices = "4.4.2"
 
 # Core
 coreKtx = "1.13.1"
@@ -27,7 +26,6 @@ okhttp = "4.12.0"
 
 # Backend
 supabase = "3.5.0"
-firebaseBom = "33.1.2"
 
 # Local
 room = "2.6.1"
@@ -99,10 +97,6 @@ supabase-postgrest = { module = "io.github.jan-tennert.supabase:postgrest-kt" }
 supabase-realtime = { module = "io.github.jan-tennert.supabase:realtime-kt" }
 supabase-storage = { module = "io.github.jan-tennert.supabase:storage-kt" }
 
-# ============ FIREBASE ============
-firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebaseBom" }
-firebase-messaging = { module = "com.google.firebase:firebase-messaging-ktx" }
-
 # ============ ROOM ============
 room-runtime = { module = "androidx.room:room-runtime", version.ref = "room" }
 room-ktx = { module = "androidx.room:room-ktx", version.ref = "room" }
@@ -142,4 +136,3 @@ kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
-google-services = { id = "com.google.gms.google-services", version.ref = "googleServices" }
