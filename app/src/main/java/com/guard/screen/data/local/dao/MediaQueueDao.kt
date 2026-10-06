@@ -12,19 +12,11 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface MediaQueueDao {
 
-    // ============================================
-    // INSERT
-    // ============================================
-
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(item: MediaQueueItem): Long
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(items: List<MediaQueueItem>)
-
-    // ============================================
-    // QUERY
-    // ============================================
 
     @Query("SELECT * FROM media_queue ORDER BY createdAt ASC")
     suspend fun getAll(): List<MediaQueueItem>
@@ -47,19 +39,11 @@ interface MediaQueueDao {
     @Query("SELECT * FROM media_queue ORDER BY createdAt DESC")
     fun observeAll(): Flow<List<MediaQueueItem>>
 
-    // ============================================
-    // UPDATE
-    // ============================================
-
     @Update
     suspend fun update(item: MediaQueueItem)
 
     @Query("UPDATE media_queue SET retryCount = retryCount + 1, lastError = :error, nextRetryAt = :nextRetryAt WHERE id = :id")
     suspend fun incrementRetry(id: String, error: String, nextRetryAt: Long)
-
-    // ============================================
-    // DELETE
-    // ============================================
 
     @Delete
     suspend fun delete(item: MediaQueueItem)
