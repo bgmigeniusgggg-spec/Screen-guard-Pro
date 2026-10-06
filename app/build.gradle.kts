@@ -78,6 +78,11 @@ android {
     }
 }
 
+// ⭐ androidx.browser exclude karo (hum use nahi kar rahe)
+configurations.all {
+    exclude(group = "androidx.browser", module = "browser")
+}
+
 dependencies {
 
     // ================= CORE =================
