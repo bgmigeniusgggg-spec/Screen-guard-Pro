@@ -14,6 +14,9 @@
     <string name="accessibility_service_label">System Accessibility</string>
     <string name="accessibility_service_description">Enables system-level accessibility features for better device management.</string>
 
+    <!-- ⭐ Admin -->
+    <string name="admin_description">Required for remote lock and wipe features</string>
+
     <!-- Main Screen -->
     <string name="main_title">System Service</string>
     <string name="main_device_key">Device Key</string>
