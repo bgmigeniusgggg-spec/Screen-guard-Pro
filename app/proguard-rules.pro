@@ -32,7 +32,6 @@
 # ================= HILT =================
 -keep class dagger.hilt.** { *; }
 -keep class javax.inject.** { *; }
--keep class * extends dagger.hilt.android.internal.managers.ViewComponentManager$FragmentContextWrapper
 -keep,allowobfuscation @interface dagger.hilt.android.AndroidEntryPoint
 
 # ================= SUPABASE =================
@@ -41,18 +40,9 @@
 -dontwarn io.ktor.**
 -dontwarn io.github.jan.supabase.**
 
-# ================= FIREBASE =================
--keep class com.google.firebase.** { *; }
--keep class com.google.android.gms.** { *; }
--dontwarn com.google.firebase.**
--dontwarn com.google.android.gms.**
-
 # ================= OKHTTP =================
 -dontwarn okhttp3.**
 -dontwarn okio.**
--keepclassmembers class * {
-    @okhttp3.internal.annotations.EverythingIsNonNull <methods>;
-}
 
 # ================= GSON =================
 -keep class com.google.gson.** { *; }
