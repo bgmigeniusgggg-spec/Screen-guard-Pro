@@ -12,10 +12,15 @@ import com.guard.screen.data.model.MediaFile
 import com.guard.screen.data.model.MediaUploadRequest
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.from
+import io.github.jan.supabase.postgrest.query.Order
 import io.github.jan.supabase.storage.storage
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import java.util.TimeZone
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -28,9 +33,6 @@ class SupabaseDataSource @Inject constructor(
     // COMMANDS
     // ============================================
 
-    /**
-     * Pending commands fetch karo is device ke liye.
-     */
     suspend fun getPendingCommands(deviceKey: String): List<Command> = withContext(Dispatchers.IO) {
         try {
             supabase.from(Constants.TABLE_COMMANDS)
@@ -47,9 +49,6 @@ class SupabaseDataSource @Inject constructor(
         }
     }
 
-    /**
-     * Command status update karo.
-     */
     suspend fun updateCommandStatus(
         commandId: String,
         status: String,
@@ -78,13 +77,10 @@ class SupabaseDataSource @Inject constructor(
     // DEVICES
     // ============================================
 
-    /**
-     * Device ko register karo ya update karo.
-     */
     suspend fun upsertDevice(device: DeviceInfo): Boolean = withContext(Dispatchers.IO) {
         try {
             supabase.from(Constants.TABLE_DEVICES).upsert(device) {
-                onConflict = "device_key"
+                select()
             }
             true
         } catch (e: Exception) {
@@ -93,9 +89,6 @@ class SupabaseDataSource @Inject constructor(
         }
     }
 
-    /**
-     * Heartbeat bhejo.
-     */
     suspend fun sendHeartbeat(heartbeat: DeviceHeartbeat): Boolean = withContext(Dispatchers.IO) {
         try {
             supabase.from(Constants.TABLE_DEVICES).update(
@@ -120,9 +113,6 @@ class SupabaseDataSource @Inject constructor(
     // MEDIA
     // ============================================
 
-    /**
-     * File ko Supabase Storage mein upload karo.
-     */
     suspend fun uploadFile(
         bucket: String,
         storagePath: String,
@@ -130,14 +120,13 @@ class SupabaseDataSource @Inject constructor(
     ): String? = withContext(Dispatchers.IO) {
         try {
             val bytes = file.readBytes()
+
             supabase.storage.from(bucket).upload(
                 path = storagePath,
-                data = bytes
-            ) {
+                data = bytes,
                 upsert = true
-            }
+            )
 
-            // Public URL lo
             val publicUrl = supabase.storage.from(bucket)
                 .publicUrl(storagePath)
 
@@ -149,9 +138,6 @@ class SupabaseDataSource @Inject constructor(
         }
     }
 
-    /**
-     * Media entry database mein insert karo.
-     */
     suspend fun insertMedia(request: MediaUploadRequest): MediaFile? = withContext(Dispatchers.IO) {
         try {
             supabase.from(Constants.TABLE_MEDIA)
@@ -169,9 +155,6 @@ class SupabaseDataSource @Inject constructor(
     // LIVE FRAMES
     // ============================================
 
-    /**
-     * Live frame upload karo.
-     */
     suspend fun uploadLiveFrame(
         deviceKey: String,
         frameBytes: ByteArray,
@@ -182,15 +165,13 @@ class SupabaseDataSource @Inject constructor(
 
             supabase.storage.from(Constants.BUCKET_LIVE_FRAMES).upload(
                 path = path,
-                data = frameBytes
-            ) {
+                data = frameBytes,
                 upsert = true
-            }
+            )
 
             val publicUrl = supabase.storage.from(Constants.BUCKET_LIVE_FRAMES)
                 .publicUrl(path)
 
-            // DB mein entry
             val upload = LiveFrameUpload(
                 deviceKey = deviceKey,
                 framePath = path,
@@ -208,9 +189,6 @@ class SupabaseDataSource @Inject constructor(
         }
     }
 
-    /**
-     * Live frame delete karo (purane frames).
-     */
     suspend fun deleteOldLiveFrames(deviceKey: String, keepCount: Int = 10): Boolean =
         withContext(Dispatchers.IO) {
             try {
@@ -219,11 +197,10 @@ class SupabaseDataSource @Inject constructor(
                         filter {
                             eq("device_key", deviceKey)
                         }
-                        order("created_at", io.github.jan.supabase.postgrest.query.Order.DESCENDING)
+                        order("created_at", Order.DESCENDING)
                     }
                     .decodeList<LiveFrame>()
 
-                // Purane frames delete karo
                 frames.drop(keepCount).forEach { frame ->
                     try {
                         supabase.storage.from(Constants.BUCKET_LIVE_FRAMES)
@@ -245,8 +222,8 @@ class SupabaseDataSource @Inject constructor(
     // ============================================
 
     private fun getCurrentTimestamp(): String {
-        return java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", java.util.Locale.US)
-            .apply { timeZone = java.util.TimeZone.getTimeZone("UTC") }
-            .format(java.util.Date())
+        return SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US)
+            .apply { timeZone = TimeZone.getTimeZone("UTC") }
+            .format(Date())
     }
 }
