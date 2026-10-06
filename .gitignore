@@ -1,0 +1,57 @@
+# Built
+*.apk
+*.aar
+*.ap_
+*.aab
+*.dex
+*.class
+
+# Generated
+bin/
+gen/
+out/
+release/
+
+# Gradle
+.gradle/
+build/
+captures/
+
+# Local config
+local.properties
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.navigation/
+workspace.xml
+tasks.xml
+usage.txt
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Keystore
+*.jks
+*.keystore
+
+# Native
+.externalNativeBuild
+.cxx/
+
+# ⚠️ IMPORTANT — Secrets
+app/google-services.json
+.env
+.env.local
+secrets.properties
+
+# Firebase
+.firebase/
+
+# Supabase
+.supabase/
