@@ -1,12 +1,9 @@
-import java.util.Properties
-
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt)
-    alias(libs.plugins.google.services)
 }
 
 android {
@@ -126,10 +123,6 @@ dependencies {
     implementation(libs.supabase.postgrest)
     implementation(libs.supabase.realtime)
     implementation(libs.supabase.storage)
-
-    // ================= FIREBASE =================
-    implementation(platform(libs.firebase.bom))
-    implementation(libs.firebase.messaging)
 
     // ================= ROOM =================
     implementation(libs.room.runtime)
