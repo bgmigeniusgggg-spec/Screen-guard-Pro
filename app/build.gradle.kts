@@ -78,9 +78,24 @@ android {
     }
 }
 
-// ⭐ androidx.browser exclude karo (hum use nahi kar rahe)
+// ============================================
+// DEPENDENCY EXCLUSIONS + FORCE
+// ============================================
+
 configurations.all {
+    // androidx.browser exclude (hum use nahi kar rahe)
     exclude(group = "androidx.browser", module = "browser")
+
+    // Kotlinx serialization ko 1.6.3 pe force karo
+    resolutionStrategy {
+        force("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
+        force("org.jetbrains.kotlinx:kotlinx-serialization-core:1.6.3")
+        force("org.jetbrains.kotlinx:kotlinx-serialization-json-jvm:1.6.3")
+        force("org.jetbrains.kotlinx:kotlinx-serialization-core-jvm:1.6.3")
+        force("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
+        force("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1")
+        force("org.jetbrains.kotlinx:kotlinx-coroutines-core-jvm:1.8.1")
+    }
 }
 
 dependencies {
@@ -115,6 +130,7 @@ dependencies {
     // ================= ASYNC =================
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.kotlinx.coroutines.core)
+    implementation(libs.kotlinx.serialization.json)
 
     // ================= NETWORK =================
     implementation(libs.ktor.client.android)
