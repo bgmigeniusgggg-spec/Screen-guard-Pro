@@ -3,9 +3,6 @@ package com.guard.screen.data.model
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
-/**
- * Media file model — Supabase ke `media` table se match karta hai.
- */
 @Serializable
 data class MediaFile(
     val id: String? = null,
@@ -14,10 +11,10 @@ data class MediaFile(
     val deviceKey: String,
 
     @SerialName("media_type")
-    val mediaType: String,          // photo, video, audio, screen
+    val mediaType: String,
 
     @SerialName("storage_path")
-    val storagePath: String,        // Supabase Storage mein path
+    val storagePath: String,
 
     @SerialName("public_url")
     val publicUrl: String? = null,
@@ -35,9 +32,6 @@ data class MediaFile(
     val metadata: Map<String, String>? = null
 )
 
-/**
- * Media upload request — Supabase mein insert ke liye.
- */
 @Serializable
 data class MediaUploadRequest(
     @SerialName("device_key")
