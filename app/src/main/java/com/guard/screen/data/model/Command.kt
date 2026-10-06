@@ -3,9 +3,6 @@ package com.guard.screen.data.model
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
-/**
- * Command model — Supabase ke `commands` table se match karta hai.
- */
 @Serializable
 data class Command(
     val id: String? = null,
@@ -31,9 +28,6 @@ data class Command(
     @SerialName("error_message")
     val errorMessage: String? = null
 ) {
-    /**
-     * Command parse karo — "REC:60" → ("REC", "60")
-     */
     fun parse(): Pair<String, String?> {
         val parts = cmd.split(":", limit = 2)
         val base = parts[0].uppercase().trim()
@@ -42,9 +36,6 @@ data class Command(
     }
 }
 
-/**
- * Command request model — Supabase mein insert ke liye.
- */
 @Serializable
 data class CommandRequest(
     @SerialName("device_key")
@@ -60,9 +51,6 @@ data class CommandRequest(
     val sentAt: String
 )
 
-/**
- * Command update model — status update ke liye.
- */
 @Serializable
 data class CommandUpdate(
     @SerialName("status")
