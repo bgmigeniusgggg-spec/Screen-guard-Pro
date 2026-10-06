@@ -3,9 +3,6 @@ package com.guard.screen.data.model
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
-/**
- * Device info model — Supabase ke `devices` table se match.
- */
 @Serializable
 data class DeviceInfo(
     val id: String? = null,
@@ -44,9 +41,6 @@ data class DeviceInfo(
     val createdAt: String? = null
 )
 
-/**
- * Device heartbeat update.
- */
 @Serializable
 data class DeviceHeartbeat(
     @SerialName("device_key")
