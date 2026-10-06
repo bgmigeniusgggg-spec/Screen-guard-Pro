@@ -12,19 +12,11 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface CommandQueueDao {
 
-    // ============================================
-    // INSERT
-    // ============================================
-
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(item: CommandQueueItem): Long
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(items: List<CommandQueueItem>)
-
-    // ============================================
-    // QUERY
-    // ============================================
 
     @Query("SELECT * FROM command_queue ORDER BY createdAt ASC")
     suspend fun getAll(): List<CommandQueueItem>
@@ -38,19 +30,11 @@ interface CommandQueueDao {
     @Query("SELECT COUNT(*) FROM command_queue")
     fun observeCount(): Flow<Int>
 
-    // ============================================
-    // UPDATE
-    // ============================================
-
     @Update
     suspend fun update(item: CommandQueueItem)
 
     @Query("UPDATE command_queue SET retryCount = retryCount + 1 WHERE id = :id")
     suspend fun incrementRetry(id: String)
-
-    // ============================================
-    // DELETE
-    // ============================================
 
     @Delete
     suspend fun delete(item: CommandQueueItem)
