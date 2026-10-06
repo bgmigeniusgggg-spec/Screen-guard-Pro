@@ -16,26 +16,24 @@ import com.guard.screen.core.Logger
 import com.guard.screen.data.model.MediaFile
 import com.guard.screen.data.repository.MediaRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import java.io.File
 import java.util.concurrent.Executors
 import javax.inject.Inject
 import kotlin.coroutines.resume
 
-/**
- * Front/Back camera se photo capture karta hai aur upload karta hai.
- */
 class CapturePhotoUseCase @Inject constructor(
     @ApplicationContext private val context: Context,
     private val mediaRepository: MediaRepository
 ) {
 
     private val executor = Executors.newSingleThreadExecutor()
+    private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
-    /**
-     * Photo capture karo aur upload karo.
-     * @param useFrontCamera true → front, false → back
-     */
     suspend operator fun invoke(
         deviceKey: String,
         useFrontCamera: Boolean = true
@@ -45,7 +43,6 @@ class CapturePhotoUseCase @Inject constructor(
             future.addListener({
                 try {
                     val provider = future.get()
-
                     val owner = DummyLifecycleOwner()
                     owner.start()
 
@@ -62,7 +59,6 @@ class CapturePhotoUseCase @Inject constructor(
                     provider.unbindAll()
                     provider.bindToLifecycle(owner, selector, capture)
 
-                    // Camera ready hone ka wait
                     Thread.sleep(700)
 
                     val file = File(
@@ -83,10 +79,7 @@ class CapturePhotoUseCase @Inject constructor(
                                 provider.unbindAll()
                                 owner.stop()
 
-                                // Upload karo
-                                kotlinx.coroutines.CoroutineScope(
-                                    kotlinx.coroutines.Dispatchers.IO
-                                ).launch {
+                                scope.launch {
                                     val result = mediaRepository.uploadMedia(
                                         deviceKey = deviceKey,
                                         mediaType = Constants.MEDIA_TYPE_PHOTO,
@@ -135,20 +128,10 @@ class CapturePhotoUseCase @Inject constructor(
         }
     }
 
-    /**
-     * Dummy lifecycle owner — CameraX ke liye.
-     */
     private class DummyLifecycleOwner : LifecycleOwner {
         private val registry = LifecycleRegistry(this)
         override val lifecycle: Lifecycle get() = registry
         fun start() { registry.currentState = Lifecycle.State.RESUMED }
         fun stop() { registry.currentState = Lifecycle.State.DESTROYED }
-    }
-}
-
-// Extension for launching coroutine inside callback
-private fun kotlinx.coroutines.CoroutineScope.launch(block: suspend () -> Unit) {
-    kotlinx.coroutines.launch(kotlinx.coroutines.Dispatchers.IO) {
-        block()
     }
 }
