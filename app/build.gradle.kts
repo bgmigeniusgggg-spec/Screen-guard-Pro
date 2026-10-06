@@ -78,10 +78,6 @@ android {
     }
 }
 
-// ============================================
-// DEPENDENCY EXCLUSIONS + FORCE
-// ============================================
-
 configurations.all {
     exclude(group = "androidx.browser", module = "browser")
     exclude(group = "org.jetbrains.kotlin", module = "kotlin-stdlib-jdk7")
@@ -126,7 +122,7 @@ configurations.all {
 
 dependencies {
 
-    // ================= CORE =================
+    // CORE
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
@@ -135,7 +131,7 @@ dependencies {
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.lifecycle.runtime.compose)
 
-    // ================= COMPOSE =================
+    // COMPOSE
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.ui.graphics)
@@ -146,57 +142,57 @@ dependencies {
     implementation(libs.androidx.navigation.compose)
     debugImplementation(libs.androidx.compose.ui.tooling)
 
-    // ================= HILT =================
+    // HILT
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
     implementation(libs.hilt.navigation.compose)
     implementation(libs.hilt.work)
     ksp(libs.hilt.work.compiler)
 
-    // ================= ASYNC =================
+    // ASYNC
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.kotlinx.serialization.json)
 
-    // ================= NETWORK =================
+    // NETWORK
     implementation(libs.ktor.client.android)
     implementation(libs.ktor.client.content.negotiation)
     implementation(libs.ktor.serialization.json)
     implementation(libs.okhttp)
     implementation(libs.okhttp.logging)
 
-    // ================= SUPABASE =================
+    // SUPABASE
     implementation(platform(libs.supabase.bom))
     implementation(libs.supabase.postgrest)
     implementation(libs.supabase.realtime)
     implementation(libs.supabase.storage)
 
-    // ================= ROOM =================
+    // ROOM
     implementation(libs.room.runtime)
     implementation(libs.room.ktx)
     ksp(libs.room.compiler)
 
-    // ================= DATASTORE =================
+    // DATASTORE
     implementation(libs.datastore.preferences)
 
-    // ================= WORKMANAGER =================
+    // WORKMANAGER
     implementation(libs.work.runtime.ktx)
 
-    // ================= CAMERA =================
+    // CAMERA
     implementation(libs.camera.core)
     implementation(libs.camera.camera2)
     implementation(libs.camera.lifecycle)
     implementation(libs.camera.video)
     implementation(libs.camera.view)
 
-    // ================= LOCATION =================
-    implementation(libs.play.services.location)   // ⭐ FIXED
+    // LOCATION
+    implementation(libs.play.services.location)
 
-    // ================= UTILS =================
+    // UTILS
     implementation(libs.timber)
     implementation(libs.gson)
 
-    // ================= TESTING =================
+    // TESTING
     testImplementation(libs.junit)
     testImplementation(libs.mockk)
     testImplementation(libs.turbine)
