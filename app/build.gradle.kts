@@ -88,23 +88,19 @@ configurations.all {
     exclude(group = "org.jetbrains.kotlin", module = "kotlin-stdlib-jdk8")
 
     resolutionStrategy {
-        // Kotlin stdlib/reflect
         force("org.jetbrains.kotlin:kotlin-stdlib:1.9.24")
         force("org.jetbrains.kotlin:kotlin-reflect:1.9.24")
         force("org.jetbrains.kotlin:kotlin-stdlib-common:1.9.24")
 
-        // Serialization
         force("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
         force("org.jetbrains.kotlinx:kotlinx-serialization-core:1.6.3")
         force("org.jetbrains.kotlinx:kotlinx-serialization-json-jvm:1.6.3")
         force("org.jetbrains.kotlinx:kotlinx-serialization-core-jvm:1.6.3")
 
-        // Coroutines
         force("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
         force("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1")
         force("org.jetbrains.kotlinx:kotlinx-coroutines-core-jvm:1.8.1")
 
-        // Ktor — force 2.3.12
         force("io.ktor:ktor-client-android:2.3.12")
         force("io.ktor:ktor-client-core:2.3.12")
         force("io.ktor:ktor-client-core-jvm:2.3.12")
@@ -121,7 +117,6 @@ configurations.all {
         force("io.ktor:ktor-serialization-kotlinx-json:2.3.12")
         force("io.ktor:ktor-client-content-negotiation:2.3.12")
 
-        // kotlinx misc
         force("org.jetbrains.kotlinx:kotlinx-datetime:0.5.0")
         force("org.jetbrains.kotlinx:kotlinx-io-core:0.3.0")
         force("org.jetbrains.kotlinx:kotlinx-io-bytestring:0.3.0")
@@ -195,7 +190,7 @@ dependencies {
     implementation(libs.camera.view)
 
     // ================= LOCATION =================
-    implementation(libs.play-services.location)
+    implementation(libs.play.services.location)   // ⭐ FIXED
 
     // ================= UTILS =================
     implementation(libs.timber)
