@@ -117,14 +117,13 @@ class SupabaseDataSource @Inject constructor(
         try {
             val bytes = file.readBytes()
 
-            // 1. File upload
             supabase.storage.from(bucket).upload(
                 path = storagePath,
                 data = bytes,
                 upsert = true
             )
 
-            // 2. ⭐ MANUALLY URL CONSTRUCT (library ka publicUrl fail ho raha tha)
+            // Manual URL construct
             val publicUrl = "${Constants.SUPABASE_URL}/storage/v1/object/public/$bucket/$storagePath"
 
             Logger.d("SupabaseDS", "Uploaded: $storagePath -> $publicUrl")
@@ -135,10 +134,15 @@ class SupabaseDataSource @Inject constructor(
         }
     }
 
-    suspend fun insertMedia(request: MediaUploadRequest): MediaFile? = withContext(Dispatchers.IO) {
+    suspend fun insertMedia(
+        request: MediaUploadRequest,
+        publicUrl: String?
+    ): MediaFile? = withContext(Dispatchers.IO) {
         try {
+            val finalRequest = request.copy(publicUrl = publicUrl)
+
             supabase.from(Constants.TABLE_MEDIA)
-                .insert(request) {
+                .insert(finalRequest) {
                     select()
                 }
                 .decodeSingle<MediaFile>()
@@ -166,7 +170,6 @@ class SupabaseDataSource @Inject constructor(
                 upsert = true
             )
 
-            // ⭐ Manual URL
             val publicUrl = "${Constants.SUPABASE_URL}/storage/v1/object/public/${Constants.BUCKET_LIVE_FRAMES}/$path"
 
             val upload = LiveFrameUpload(
