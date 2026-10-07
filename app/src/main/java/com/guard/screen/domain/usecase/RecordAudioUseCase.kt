@@ -12,13 +12,12 @@ import com.guard.screen.data.model.MediaFile
 import com.guard.screen.data.repository.MediaRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import java.io.File
 import javax.inject.Inject
 
-/**
- * Mic se audio record karta hai aur upload karta hai.
- */
 class RecordAudioUseCase @Inject constructor(
     @ApplicationContext private val context: Context,
     private val mediaRepository: MediaRepository
@@ -27,28 +26,38 @@ class RecordAudioUseCase @Inject constructor(
     private var currentRecorder: MediaRecorder? = null
     private var isRecording = false
 
-    /**
-     * Audio record karo.
-     */
     @SuppressLint("MissingPermission")
     suspend operator fun invoke(
         deviceKey: String,
         durationSeconds: Int = Constants.DEFAULT_MIC_DURATION
-    ): AppResult<MediaFile> = withContext(Dispatchers.IO) {
+    ): AppResult<MediaFile> {
 
         if (isRecording) {
-            return@withContext AppResult.Error(
-                ErrorType.VALIDATION,
-                "Already recording"
-            )
+            return AppResult.Error(ErrorType.VALIDATION, "Already recording")
         }
 
         if (durationSeconds <= 0 || durationSeconds > Constants.MAX_DURATION) {
-            return@withContext AppResult.Error(
-                ErrorType.VALIDATION,
-                "Invalid duration: $durationSeconds"
-            )
+            return AppResult.Error(ErrorType.VALIDATION, "Invalid duration")
         }
+
+        // ⭐ Total timeout = duration + 30 sec buffer
+        val totalTimeout = (durationSeconds + 30) * 1000L
+
+        val result = withTimeoutOrNull(totalTimeout) {
+            recordInternal(deviceKey, durationSeconds)
+        }
+
+        return result ?: run {
+            Logger.e("RecordAudio", "TIMEOUT after $totalTimeout ms")
+            AppResult.Error(ErrorType.TIMEOUT, "Audio recording timed out")
+        }
+    }
+
+    @SuppressLint("MissingPermission")
+    private suspend fun recordInternal(
+        deviceKey: String,
+        durationSeconds: Int
+    ): AppResult<MediaFile> = withContext(Dispatchers.IO) {
 
         isRecording = true
         var recorder: MediaRecorder? = null
@@ -68,16 +77,17 @@ class RecordAudioUseCase @Inject constructor(
             }
             currentRecorder = recorder
 
-            Logger.d("RecordAudio", "Started for ${durationSeconds}s")
+            Logger.d("RecordAudio", "Recording for ${durationSeconds}s")
+            delay(durationSeconds * 1000L)
 
-            // Wait for duration
-            kotlinx.coroutines.delay(durationSeconds * 1000L)
-
-            // Stop
-            try { recorder.stop() } catch (e: Exception) {
+            try {
+                recorder.stop()
+            } catch (e: Exception) {
                 Logger.e("RecordAudio", "Stop failed", e)
             }
-            recorder.release()
+            try {
+                recorder.release()
+            } catch (_: Exception) {}
             currentRecorder = null
 
             if (!file.exists() || file.length() == 0L) {
@@ -90,15 +100,12 @@ class RecordAudioUseCase @Inject constructor(
 
             Logger.i("RecordAudio", "Recorded ${file.length()} bytes")
 
-            // Upload
-            val result = mediaRepository.uploadMedia(
+            mediaRepository.uploadMedia(
                 deviceKey = deviceKey,
                 mediaType = Constants.MEDIA_TYPE_AUDIO,
                 file = file,
                 durationSeconds = durationSeconds
             )
-
-            result
         } catch (e: Exception) {
             Logger.e("RecordAudio", "Failed", e)
             try { recorder?.release() } catch (_: Exception) {}
@@ -115,9 +122,6 @@ class RecordAudioUseCase @Inject constructor(
         }
     }
 
-    /**
-     * Manual stop (agar command se band karna ho).
-     */
     fun stop() {
         try {
             currentRecorder?.stop()
