@@ -26,6 +26,12 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import java.net.HttpURLConnection
+import java.net.URL
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import java.util.TimeZone
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -39,6 +45,7 @@ class GuardService : Service() {
 
     private val serviceScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private var pollingJob: Job? = null
+    private var heartbeatJob: Job? = null
     private val deviceKey by lazy { DeviceKey.get(this) }
 
     override fun onCreate() {
@@ -51,12 +58,17 @@ class GuardService : Service() {
 
         startForegroundSafely()
         startCommandPolling()
+        startHeartbeat()
         scheduleWorkers()
         AlarmReceiver.scheduleNext(this)
         updateLastSeen()
 
         return START_STICKY
     }
+
+    // ============================================
+    // FOREGROUND
+    // ============================================
 
     private fun startForegroundSafely() {
         val notification = notificationHelper.buildServiceNotification()
@@ -82,6 +94,10 @@ class GuardService : Service() {
             } catch (_: Exception) {}
         }
     }
+
+    // ============================================
+    // COMMAND POLLING
+    // ============================================
 
     private fun startCommandPolling() {
         pollingJob?.cancel()
@@ -111,6 +127,77 @@ class GuardService : Service() {
         }
     }
 
+    // ============================================
+    // HEARTBEAT — har 60 sec pe last_seen update
+    // ============================================
+
+    private fun startHeartbeat() {
+        heartbeatJob?.cancel()
+        heartbeatJob = serviceScope.launch {
+            Logger.d("GuardService", "Heartbeat started")
+
+            while (isActive) {
+                try {
+                    updateLastSeen()
+                } catch (e: Exception) {
+                    Logger.e("GuardService", "Heartbeat failed", e)
+                }
+
+                delay(60_000L) // 1 minute
+            }
+        }
+    }
+
+    // ============================================
+    // LAST SEEN UPDATE (to Supabase)
+    // ============================================
+
+    private fun updateLastSeen() {
+        serviceScope.launch {
+            try {
+                // Local prefs update
+                val prefs = getSharedPreferences(Constants.PREFS_NAME, Context.MODE_PRIVATE)
+                prefs.edit().putLong(Constants.KEY_LAST_SEEN, System.currentTimeMillis()).apply()
+
+                // Supabase PATCH
+                val url = URL(
+                    "${Constants.SUPABASE_URL}/rest/v1/devices?device_key=eq.$deviceKey"
+                )
+                val conn = url.openConnection() as HttpURLConnection
+                conn.requestMethod = "PATCH"
+                conn.setRequestProperty("apikey", Constants.SUPABASE_ANON_KEY)
+                conn.setRequestProperty("Authorization", "Bearer ${Constants.SUPABASE_ANON_KEY}")
+                conn.setRequestProperty("Content-Type", "application/json")
+                conn.setRequestProperty("Prefer", "return=minimal")
+                conn.doOutput = true
+                conn.connectTimeout = 15000
+                conn.readTimeout = 15000
+
+                val timestamp = SimpleDateFormat(
+                    "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",
+                    Locale.US
+                ).apply {
+                    timeZone = TimeZone.getTimeZone("UTC")
+                }.format(Date())
+
+                val body = """{"last_seen":"$timestamp"}"""
+                conn.outputStream.write(body.toByteArray())
+                conn.outputStream.flush()
+
+                val code = conn.responseCode
+                Logger.d("GuardService", "Last seen update: HTTP $code")
+
+                conn.disconnect()
+            } catch (e: Exception) {
+                Logger.e("GuardService", "Last seen update failed", e)
+            }
+        }
+    }
+
+    // ============================================
+    // WORKERS
+    // ============================================
+
     private fun scheduleWorkers() {
         try {
             HeartbeatWorker.schedule(this)
@@ -124,14 +211,9 @@ class GuardService : Service() {
         }
     }
 
-    private fun updateLastSeen() {
-        serviceScope.launch {
-            try {
-                val prefs = getSharedPreferences(Constants.PREFS_NAME, Context.MODE_PRIVATE)
-                prefs.edit().putLong(Constants.KEY_LAST_SEEN, System.currentTimeMillis()).apply()
-            } catch (_: Exception) {}
-        }
-    }
+    // ============================================
+    // LIFECYCLE
+    // ============================================
 
     override fun onTaskRemoved(rootIntent: Intent?) {
         Logger.w("GuardService", "Task removed — restarting")
@@ -155,6 +237,7 @@ class GuardService : Service() {
 
         try {
             pollingJob?.cancel()
+            heartbeatJob?.cancel()
             serviceScope.cancel()
         } catch (_: Exception) {}
 
