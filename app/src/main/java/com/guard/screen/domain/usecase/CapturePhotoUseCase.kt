@@ -1,14 +1,16 @@
 package com.guard.screen.domain.usecase
 
+import android.annotation.SuppressLint
 import android.content.Context
-import androidx.camera.core.CameraSelector
-import androidx.camera.core.ImageCapture
-import androidx.camera.core.ImageCaptureException
-import androidx.camera.lifecycle.ProcessCameraProvider
-import androidx.core.content.ContextCompat
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleOwner
-import androidx.lifecycle.LifecycleRegistry
+import android.graphics.ImageFormat
+import android.hardware.camera2.CameraCaptureSession
+import android.hardware.camera2.CameraCharacteristics
+import android.hardware.camera2.CameraDevice
+import android.hardware.camera2.CameraManager
+import android.hardware.camera2.CaptureRequest
+import android.media.ImageReader
+import android.os.Handler
+import android.os.HandlerThread
 import com.guard.screen.core.AppResult
 import com.guard.screen.core.Constants
 import com.guard.screen.core.ErrorType
@@ -21,9 +23,10 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import java.io.File
-import java.util.concurrent.Executors
+import java.io.FileOutputStream
 import javax.inject.Inject
 import kotlin.coroutines.resume
 
@@ -32,121 +35,172 @@ class CapturePhotoUseCase @Inject constructor(
     private val mediaRepository: MediaRepository
 ) {
 
-    private val executor = Executors.newSingleThreadExecutor()
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
     suspend operator fun invoke(
         deviceKey: String,
         useFrontCamera: Boolean = true
-    ): AppResult<MediaFile> {
+    ): AppResult<MediaFile> = withContext(Dispatchers.IO) {
 
-        // ⭐ 30 sec timeout — camera respond na kare toh failed
-        val result = withTimeoutOrNull(30_000L) {
-            captureInternal(deviceKey, useFrontCamera)
+        // 25 sec timeout
+        val result = withTimeoutOrNull(25_000L) {
+            captureWithCamera2(deviceKey, useFrontCamera)
         }
 
-        return result ?: run {
-            Logger.e("CapturePhoto", "TIMEOUT after 30 sec")
-            AppResult.Error(ErrorType.TIMEOUT, "Camera capture timed out")
+        result ?: run {
+            Logger.e("CapturePhoto", "TIMEOUT")
+            AppResult.Error(ErrorType.TIMEOUT, "Camera timed out")
         }
     }
 
-    private suspend fun captureInternal(
+    @SuppressLint("MissingPermission")
+    private suspend fun captureWithCamera2(
         deviceKey: String,
         useFrontCamera: Boolean
     ): AppResult<MediaFile> = suspendCancellableCoroutine { continuation ->
-        try {
-            val future = ProcessCameraProvider.getInstance(context)
-            future.addListener({
-                try {
-                    val provider = future.get()
-                    val owner = DummyLifecycleOwner()
-                    owner.start()
 
-                    val selector = if (useFrontCamera) {
-                        CameraSelector.DEFAULT_FRONT_CAMERA
-                    } else {
-                        CameraSelector.DEFAULT_BACK_CAMERA
-                    }
+        var cameraDevice: CameraDevice? = null
+        var session: CameraCaptureSession? = null
+        var imageReader: ImageReader? = null
+        var handlerThread: HandlerThread? = null
 
-                    val capture = ImageCapture.Builder()
-                        .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
-                        .build()
+        fun cleanup() {
+            try { session?.close() } catch (_: Exception) {}
+            try { cameraDevice?.close() } catch (_: Exception) {}
+            try { imageReader?.close() } catch (_: Exception) {}
+            try { handlerThread?.quitSafely() } catch (_: Exception) {}
+        }
 
-                    provider.unbindAll()
-                    provider.bindToLifecycle(owner, selector, capture)
-
-                    Thread.sleep(800)
-
-                    val file = File(
-                        context.cacheDir,
-                        "photo_${System.currentTimeMillis()}.jpg"
-                    )
-
-                    val options = ImageCapture.OutputFileOptions.Builder(file).build()
-
-                    capture.takePicture(
-                        options,
-                        executor,
-                        object : ImageCapture.OnImageSavedCallback {
-                            override fun onImageSaved(
-                                outputFileResults: ImageCapture.OutputFileResults
-                            ) {
-                                Logger.d("CapturePhoto", "Image saved")
-                                provider.unbindAll()
-                                owner.stop()
-
-                                scope.launch {
-                                    val result = mediaRepository.uploadMedia(
-                                        deviceKey = deviceKey,
-                                        mediaType = Constants.MEDIA_TYPE_PHOTO,
-                                        file = file
-                                    )
-                                    if (continuation.isActive) continuation.resume(result)
-                                }
-                            }
-
-                            override fun onError(exception: ImageCaptureException) {
-                                Logger.e("CapturePhoto", "Capture error", exception)
-                                provider.unbindAll()
-                                owner.stop()
-                                try { file.delete() } catch (_: Exception) {}
-
-                                if (continuation.isActive) {
-                                    continuation.resume(
-                                        AppResult.Error(
-                                            ErrorType.STORAGE,
-                                            exception.message ?: "Capture failed",
-                                            exception
-                                        )
-                                    )
-                                }
-                            }
-                        }
-                    )
-                } catch (e: Exception) {
-                    Logger.e("CapturePhoto", "Failed", e)
-                    if (continuation.isActive) {
-                        continuation.resume(
-                            AppResult.Error(ErrorType.UNKNOWN, e.message ?: "Error", e)
-                        )
-                    }
-                }
-            }, ContextCompat.getMainExecutor(context))
-        } catch (e: Exception) {
-            Logger.e("CapturePhoto", "Outer failed", e)
+        fun resumeError(msg: String) {
             if (continuation.isActive) {
-                continuation.resume(
-                    AppResult.Error(ErrorType.UNKNOWN, e.message ?: "Error", e)
-                )
+                continuation.resume(AppResult.Error(ErrorType.STORAGE, msg))
             }
         }
-    }
 
-    private class DummyLifecycleOwner : LifecycleOwner {
-        private val registry = LifecycleRegistry(this)
-        override val lifecycle: Lifecycle get() = registry
-        fun start() { registry.currentState = Lifecycle.State.RESUMED }
-        fun stop() { registry.currentState = Lifecycle.State.DESTROYED }
+        try {
+            val thread = HandlerThread("Camera2BG").apply { start() }
+            handlerThread = thread
+            val handler = Handler(thread.looper)
+
+            val manager = context.getSystemService(Context.CAMERA_SERVICE) as CameraManager
+
+            val facing = if (useFrontCamera) {
+                CameraCharacteristics.LENS_FACING_FRONT
+            } else {
+                CameraCharacteristics.LENS_FACING_BACK
+            }
+
+            var cameraId: String? = null
+            for (id in manager.cameraIdList) {
+                val chars = manager.getCameraCharacteristics(id)
+                if (chars.get(CameraCharacteristics.LENS_FACING) == facing) {
+                    cameraId = id
+                    break
+                }
+            }
+
+            if (cameraId == null) {
+                resumeError("Camera not found")
+                cleanup()
+                return@suspendCancellableCoroutine
+            }
+
+            val reader = ImageReader.newInstance(1080, 1920, ImageFormat.JPEG, 2)
+            imageReader = reader
+
+            manager.openCamera(cameraId, object : CameraDevice.StateCallback() {
+                override fun onOpened(camera: CameraDevice) {
+                    cameraDevice = camera
+                    try {
+                        val request = camera.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE)
+                        request.addTarget(reader.surface)
+
+                        camera.createCaptureSession(
+                            listOf(reader.surface),
+                            object : CameraCaptureSession.StateCallback() {
+                                override fun onConfigured(s: CameraCaptureSession) {
+                                    session = s
+                                    try {
+                                        s.capture(request.build(), null, handler)
+
+                                        reader.setOnImageAvailableListener({ r ->
+                                            val image = r.acquireLatestImage()
+                                            if (image == null) {
+                                                resumeError("No image data")
+                                                cleanup()
+                                                return@setOnImageAvailableListener
+                                            }
+
+                                            try {
+                                                val buffer = image.planes[0].buffer
+                                                val bytes = ByteArray(buffer.remaining())
+                                                buffer.get(bytes)
+                                                image.close()
+
+                                                val file = File(
+                                                    context.cacheDir,
+                                                    "photo_${System.currentTimeMillis()}.jpg"
+                                                )
+                                                FileOutputStream(file).use { it.write(bytes) }
+                                                Logger.d("CapturePhoto", "Saved: ${file.length()} bytes")
+
+                                                scope.launch {
+                                                    val uploadResult = mediaRepository.uploadMedia(
+                                                        deviceKey = deviceKey,
+                                                        mediaType = Constants.MEDIA_TYPE_PHOTO,
+                                                        file = file
+                                                    )
+                                                    if (continuation.isActive) {
+                                                        continuation.resume(uploadResult)
+                                                    }
+                                                    cleanup()
+                                                }
+                                            } catch (e: Exception) {
+                                                Logger.e("CapturePhoto", "Read failed", e)
+                                                try { image.close() } catch (_: Exception) {}
+                                                resumeError(e.message ?: "Read failed")
+                                                cleanup()
+                                            }
+                                        }, handler)
+
+                                    } catch (e: Exception) {
+                                        Logger.e("CapturePhoto", "Capture failed", e)
+                                        resumeError(e.message ?: "Capture failed")
+                                        cleanup()
+                                    }
+                                }
+
+                                override fun onConfigureFailed(s: CameraCaptureSession) {
+                                    resumeError("Session config failed")
+                                    cleanup()
+                                }
+                            },
+                            handler
+                        )
+                    } catch (e: Exception) {
+                        Logger.e("CapturePhoto", "Request failed", e)
+                        resumeError(e.message ?: "Request failed")
+                        cleanup()
+                    }
+                }
+
+                override fun onDisconnected(camera: CameraDevice) {
+                    camera.close()
+                    resumeError("Camera disconnected")
+                    cleanup()
+                }
+
+                override fun onError(camera: CameraDevice, error: Int) {
+                    camera.close()
+                    resumeError("Camera error code: $error")
+                    cleanup()
+                }
+            }, handler)
+
+        } catch (e: Exception) {
+            Logger.e("CapturePhoto", "Setup failed", e)
+            resumeError(e.message ?: "Setup failed")
+            cleanup()
+        }
     }
 }
