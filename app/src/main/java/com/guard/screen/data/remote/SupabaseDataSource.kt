@@ -62,9 +62,7 @@ class SupabaseDataSource @Inject constructor(
                     errorMessage = errorMessage
                 )
             ) {
-                filter {
-                    eq("id", commandId)
-                }
+                filter { eq("id", commandId) }
             }
             true
         } catch (e: Exception) {
@@ -98,9 +96,7 @@ class SupabaseDataSource @Inject constructor(
                     "is_charging" to heartbeat.isCharging
                 )
             ) {
-                filter {
-                    eq("device_key", heartbeat.deviceKey)
-                }
+                filter { eq("device_key", heartbeat.deviceKey) }
             }
             true
         } catch (e: Exception) {
@@ -110,7 +106,7 @@ class SupabaseDataSource @Inject constructor(
     }
 
     // ============================================
-    // MEDIA
+    // MEDIA UPLOAD
     // ============================================
 
     suspend fun uploadFile(
@@ -121,16 +117,17 @@ class SupabaseDataSource @Inject constructor(
         try {
             val bytes = file.readBytes()
 
+            // 1. File upload
             supabase.storage.from(bucket).upload(
                 path = storagePath,
                 data = bytes,
                 upsert = true
             )
 
-            val publicUrl = supabase.storage.from(bucket)
-                .publicUrl(storagePath)
+            // 2. ⭐ MANUALLY URL CONSTRUCT (library ka publicUrl fail ho raha tha)
+            val publicUrl = "${Constants.SUPABASE_URL}/storage/v1/object/public/$bucket/$storagePath"
 
-            Logger.d("SupabaseDS", "Uploaded: $storagePath (${bytes.size} bytes)")
+            Logger.d("SupabaseDS", "Uploaded: $storagePath -> $publicUrl")
             publicUrl
         } catch (e: Exception) {
             Logger.e("SupabaseDS", "uploadFile failed", e)
@@ -169,8 +166,8 @@ class SupabaseDataSource @Inject constructor(
                 upsert = true
             )
 
-            val publicUrl = supabase.storage.from(Constants.BUCKET_LIVE_FRAMES)
-                .publicUrl(path)
+            // ⭐ Manual URL
+            val publicUrl = "${Constants.SUPABASE_URL}/storage/v1/object/public/${Constants.BUCKET_LIVE_FRAMES}/$path"
 
             val upload = LiveFrameUpload(
                 deviceKey = deviceKey,
@@ -178,9 +175,7 @@ class SupabaseDataSource @Inject constructor(
                 frameIndex = frameIndex,
                 createdAt = getCurrentTimestamp()
             )
-
-            supabase.from(Constants.TABLE_LIVE_FRAMES)
-                .insert(upload)
+            supabase.from(Constants.TABLE_LIVE_FRAMES).insert(upload)
 
             publicUrl
         } catch (e: Exception) {
@@ -194,17 +189,14 @@ class SupabaseDataSource @Inject constructor(
             try {
                 val frames = supabase.from(Constants.TABLE_LIVE_FRAMES)
                     .select {
-                        filter {
-                            eq("device_key", deviceKey)
-                        }
+                        filter { eq("device_key", deviceKey) }
                         order("created_at", Order.DESCENDING)
                     }
                     .decodeList<LiveFrame>()
 
                 frames.drop(keepCount).forEach { frame ->
                     try {
-                        supabase.storage.from(Constants.BUCKET_LIVE_FRAMES)
-                            .delete(frame.framePath)
+                        supabase.storage.from(Constants.BUCKET_LIVE_FRAMES).delete(frame.framePath)
                         supabase.from(Constants.TABLE_LIVE_FRAMES).delete {
                             filter { eq("id", frame.id ?: "") }
                         }
@@ -216,10 +208,6 @@ class SupabaseDataSource @Inject constructor(
                 false
             }
         }
-
-    // ============================================
-    // HELPERS
-    // ============================================
 
     private fun getCurrentTimestamp(): String {
         return SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US)
