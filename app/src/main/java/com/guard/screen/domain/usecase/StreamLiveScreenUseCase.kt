@@ -1,11 +1,13 @@
 package com.guard.screen.domain.usecase
 
 import android.content.Context
+import android.content.Intent
 import com.guard.screen.core.AppResult
 import com.guard.screen.core.Constants
 import com.guard.screen.core.ErrorType
 import com.guard.screen.core.Logger
 import com.guard.screen.data.repository.MediaRepository
+import com.guard.screen.ui.MediaProjectionActivity
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -29,7 +31,6 @@ class StreamLiveScreenUseCase @Inject constructor(
     private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
     private var frameIndex = 0L
 
-    // ⭐ Private — external setter nahi
     private var frameProvider: (suspend () -> ByteArray?)? = null
 
     suspend operator fun invoke(deviceKey: String): AppResult<Boolean> {
@@ -37,11 +38,28 @@ class StreamLiveScreenUseCase @Inject constructor(
             return AppResult.Error(ErrorType.VALIDATION, "Already streaming")
         }
 
+        // ⭐ Agar frame provider nahi hai, toh consent maang lo
         if (frameProvider == null) {
-            return AppResult.Error(
-                ErrorType.CONSENT,
-                "Frame provider not set — MediaProjection consent needed"
-            )
+            Logger.i("StreamLive", "Frame provider not set — launching consent")
+
+            try {
+                val intent = Intent(context, MediaProjectionActivity::class.java).apply {
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    putExtra(MediaProjectionActivity.EXTRA_MODE, MediaProjectionActivity.MODE_LIVE)
+                    putExtra(MediaProjectionActivity.EXTRA_DEVICE_KEY, deviceKey)
+                }
+                context.startActivity(intent)
+
+                return AppResult.Error(
+                    ErrorType.CONSENT,
+                    "Consent dialog opened — tap 'Start now' on phone"
+                )
+            } catch (e: Exception) {
+                return AppResult.Error(
+                    ErrorType.CONSENT,
+                    "Failed to launch consent: ${e.message}"
+                )
+            }
         }
 
         isStreaming.set(true)
@@ -80,7 +98,7 @@ class StreamLiveScreenUseCase @Inject constructor(
                         }
                     }
                 } catch (e: Exception) {
-                    Logger.e("StreamLive", "Loop iteration failed", e)
+                    Logger.e("StreamLive", "Loop failed", e)
                 }
 
                 delay(Constants.LIVE_FRAME_INTERVAL_MS)
@@ -93,7 +111,6 @@ class StreamLiveScreenUseCase @Inject constructor(
 
     fun stop() {
         if (!isStreaming.get()) return
-
         isStreaming.set(false)
         streamJob?.cancel()
         streamJob = null
@@ -103,7 +120,6 @@ class StreamLiveScreenUseCase @Inject constructor(
 
     fun isActive(): Boolean = isStreaming.get()
 
-    // ⭐ Sirf ye method public hai — koi var setter nahi
     fun setFrameProvider(provider: suspend () -> ByteArray?) {
         this.frameProvider = provider
     }
