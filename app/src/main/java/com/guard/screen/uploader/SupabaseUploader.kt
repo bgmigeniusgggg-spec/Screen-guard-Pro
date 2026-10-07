@@ -28,9 +28,6 @@ class SupabaseUploader @Inject constructor(
     private val mediaQueueDao: MediaQueueDao
 ) {
 
-    /**
-     * File upload karo — agar fail ho toh queue karo.
-     */
     suspend fun upload(
         deviceKey: String,
         mediaType: String,
@@ -49,9 +46,9 @@ class SupabaseUploader @Inject constructor(
             val fileName = "${UUID.randomUUID()}.$extension"
             val storagePath = "$deviceKey/$mediaType/$fileName"
 
-            Logger.d("SupabaseUploader", "Uploading: $storagePath (${file.length()} bytes)")
+            Logger.d("SupabaseUploader", "Uploading: $storagePath")
 
-            // 1. Upload to Storage
+            // 1. Upload file
             val publicUrl = supabaseDS.uploadFile(
                 bucket = Constants.BUCKET_MEDIA,
                 storagePath = storagePath,
@@ -59,7 +56,6 @@ class SupabaseUploader @Inject constructor(
             )
 
             if (publicUrl == null) {
-                // Failed — queue for retry
                 queueForRetry(deviceKey, mediaType, file, storagePath, durationSeconds)
                 return@withContext AppResult.Error(
                     ErrorType.NETWORK,
@@ -67,19 +63,20 @@ class SupabaseUploader @Inject constructor(
                 )
             }
 
-            // 2. Insert into database
+            // 2. Insert media row
             val request = MediaUploadRequest(
                 deviceKey = deviceKey,
                 mediaType = mediaType,
                 storagePath = storagePath,
+                publicUrl = publicUrl,
                 fileSize = file.length(),
                 durationSeconds = durationSeconds,
                 createdAt = getCurrentTimestamp()
             )
 
-            val mediaFile = supabaseDS.insertMedia(request)
+            // ⭐ Yahan change — publicUrl pass kar
+            val mediaFile = supabaseDS.insertMedia(request, publicUrl)
 
-            // 3. Local file delete karo
             try { file.delete() } catch (_: Exception) {}
 
             Logger.i("SupabaseUploader", "Upload OK: $publicUrl")
@@ -100,9 +97,6 @@ class SupabaseUploader @Inject constructor(
         }
     }
 
-    /**
-     * Bytes upload karo (live frames).
-     */
     suspend fun uploadBytes(
         deviceKey: String,
         frameBytes: ByteArray,
