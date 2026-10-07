@@ -43,6 +43,9 @@ data class MediaUploadRequest(
     @SerialName("storage_path")
     val storagePath: String,
 
+    @SerialName("public_url")
+    val publicUrl: String? = null,
+
     @SerialName("file_size")
     val fileSize: Long,
 
