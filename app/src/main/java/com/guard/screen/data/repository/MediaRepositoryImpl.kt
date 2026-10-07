@@ -47,7 +47,6 @@ class MediaRepositoryImpl @Inject constructor(
 
             Logger.d("MediaRepo", "Uploading: $storagePath (${file.length()} bytes)")
 
-            // 1. Upload to Storage
             val publicUrl = supabaseDS.uploadFile(
                 bucket = Constants.BUCKET_MEDIA,
                 storagePath = storagePath,
@@ -55,7 +54,6 @@ class MediaRepositoryImpl @Inject constructor(
             )
 
             if (publicUrl == null) {
-                // Upload failed — queue karo
                 queueForRetry(deviceKey, mediaType, file, storagePath, durationSeconds)
                 return@withContext AppResult.Error(
                     ErrorType.NETWORK,
@@ -63,22 +61,19 @@ class MediaRepositoryImpl @Inject constructor(
                 )
             }
 
-            // 2. Insert into database
             val request = MediaUploadRequest(
                 deviceKey = deviceKey,
                 mediaType = mediaType,
                 storagePath = storagePath,
+                publicUrl = publicUrl,
                 fileSize = file.length(),
                 durationSeconds = durationSeconds,
                 createdAt = getCurrentTimestamp()
             )
 
-            val mediaFile = supabaseDS.insertMedia(request)
+            val mediaFile = supabaseDS.insertMedia(request, publicUrl)
 
-            // 3. Local file delete karo (upload ho gaya)
-            try {
-                file.delete()
-            } catch (_: Exception) {}
+            try { file.delete() } catch (_: Exception) {}
 
             if (mediaFile != null) {
                 Logger.i("MediaRepo", "Media uploaded: $publicUrl")
@@ -108,11 +103,8 @@ class MediaRepositoryImpl @Inject constructor(
     ): AppResult<String> = withContext(Dispatchers.IO) {
         try {
             val url = supabaseDS.uploadLiveFrame(deviceKey, frameBytes, frameIndex)
-            if (url != null) {
-                AppResult.Success(url)
-            } else {
-                AppResult.Error(ErrorType.NETWORK, "Frame upload failed")
-            }
+            if (url != null) AppResult.Success(url)
+            else AppResult.Error(ErrorType.NETWORK, "Frame upload failed")
         } catch (e: Exception) {
             Logger.e("MediaRepo", "uploadLiveFrame failed", e)
             AppResult.Error(ErrorType.NETWORK, e.message ?: "Error", e)
@@ -131,10 +123,6 @@ class MediaRepositoryImpl @Inject constructor(
         }
 
     override fun observePendingUploads(): Flow<Int> = mediaQueueDao.observeCount()
-
-    // ============================================
-    // HELPERS
-    // ============================================
 
     private suspend fun queueForRetry(
         deviceKey: String,
