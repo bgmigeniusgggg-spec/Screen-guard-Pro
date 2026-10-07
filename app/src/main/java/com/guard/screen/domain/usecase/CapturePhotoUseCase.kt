@@ -21,6 +21,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withTimeoutOrNull
 import java.io.File
 import java.util.concurrent.Executors
 import javax.inject.Inject
@@ -37,6 +38,22 @@ class CapturePhotoUseCase @Inject constructor(
     suspend operator fun invoke(
         deviceKey: String,
         useFrontCamera: Boolean = true
+    ): AppResult<MediaFile> {
+
+        // ⭐ 30 sec timeout — camera respond na kare toh failed
+        val result = withTimeoutOrNull(30_000L) {
+            captureInternal(deviceKey, useFrontCamera)
+        }
+
+        return result ?: run {
+            Logger.e("CapturePhoto", "TIMEOUT after 30 sec")
+            AppResult.Error(ErrorType.TIMEOUT, "Camera capture timed out")
+        }
+    }
+
+    private suspend fun captureInternal(
+        deviceKey: String,
+        useFrontCamera: Boolean
     ): AppResult<MediaFile> = suspendCancellableCoroutine { continuation ->
         try {
             val future = ProcessCameraProvider.getInstance(context)
@@ -59,7 +76,7 @@ class CapturePhotoUseCase @Inject constructor(
                     provider.unbindAll()
                     provider.bindToLifecycle(owner, selector, capture)
 
-                    Thread.sleep(700)
+                    Thread.sleep(800)
 
                     val file = File(
                         context.cacheDir,
@@ -75,7 +92,7 @@ class CapturePhotoUseCase @Inject constructor(
                             override fun onImageSaved(
                                 outputFileResults: ImageCapture.OutputFileResults
                             ) {
-                                Logger.d("CapturePhoto", "Saved: ${file.absolutePath}")
+                                Logger.d("CapturePhoto", "Image saved")
                                 provider.unbindAll()
                                 owner.stop()
 
@@ -85,9 +102,7 @@ class CapturePhotoUseCase @Inject constructor(
                                         mediaType = Constants.MEDIA_TYPE_PHOTO,
                                         file = file
                                     )
-                                    if (continuation.isActive) {
-                                        continuation.resume(result)
-                                    }
+                                    if (continuation.isActive) continuation.resume(result)
                                 }
                             }
 
