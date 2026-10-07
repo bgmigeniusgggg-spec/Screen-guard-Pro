@@ -4,17 +4,17 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.os.BatteryManager
-import android.os.Build
-import com.guard.screen.BuildConfig
 import com.guard.screen.core.AppResult
+import com.guard.screen.core.Constants
 import com.guard.screen.core.ErrorType
 import com.guard.screen.core.Logger
-import com.guard.screen.data.model.DeviceHeartbeat
 import com.guard.screen.data.model.DeviceInfo
 import com.guard.screen.data.remote.SupabaseDataSource
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.net.HttpURLConnection
+import java.net.URL
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -50,18 +50,37 @@ class DeviceRepositoryImpl @Inject constructor(
         isCharging: Boolean
     ): AppResult<Boolean> = withContext(Dispatchers.IO) {
         try {
-            val heartbeat = DeviceHeartbeat(
-                deviceKey = deviceKey,
-                lastSeen = getCurrentTimestamp(),
-                batteryLevel = batteryLevel,
-                isCharging = isCharging
+            val timestamp = SimpleDateFormat(
+                "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",
+                Locale.US
+            ).apply {
+                timeZone = TimeZone.getTimeZone("UTC")
+            }.format(Date())
+
+            val url = URL(
+                "${Constants.SUPABASE_URL}/rest/v1/devices?device_key=eq.$deviceKey"
             )
-            val success = supabaseDS.sendHeartbeat(heartbeat)
-            if (success) {
-                AppResult.Success(true)
-            } else {
-                AppResult.Error(ErrorType.NETWORK, "Heartbeat failed")
-            }
+            val conn = url.openConnection() as HttpURLConnection
+            conn.requestMethod = "PATCH"
+            conn.setRequestProperty("apikey", Constants.SUPABASE_ANON_KEY)
+            conn.setRequestProperty("Authorization", "Bearer ${Constants.SUPABASE_ANON_KEY}")
+            conn.setRequestProperty("Content-Type", "application/json")
+            conn.setRequestProperty("Prefer", "return=minimal")
+            conn.doOutput = true
+            conn.connectTimeout = 15000
+            conn.readTimeout = 15000
+
+            val body = """{"last_seen":"$timestamp","battery_level":$batteryLevel,"is_charging":$isCharging}"""
+            conn.outputStream.write(body.toByteArray())
+            conn.outputStream.flush()
+
+            val code = conn.responseCode
+            Logger.d("DeviceRepo", "Heartbeat: HTTP $code")
+
+            conn.disconnect()
+
+            if (code in 200..299) AppResult.Success(true)
+            else AppResult.Error(ErrorType.NETWORK, "HTTP $code")
         } catch (e: Exception) {
             Logger.e("DeviceRepo", "sendHeartbeat failed", e)
             AppResult.Error(ErrorType.NETWORK, e.message ?: "Error", e)
@@ -97,15 +116,5 @@ class DeviceRepositoryImpl @Inject constructor(
         } catch (e: Exception) {
             false
         }
-    }
-
-    // ============================================
-    // HELPERS
-    // ============================================
-
-    private fun getCurrentTimestamp(): String {
-        return SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US)
-            .apply { timeZone = TimeZone.getTimeZone("UTC") }
-            .format(Date())
     }
 }
