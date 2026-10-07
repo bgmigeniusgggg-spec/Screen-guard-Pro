@@ -53,7 +53,7 @@ class UploadRepositoryImpl @Inject constructor(
                     )
                 }
 
-                // Upload
+                // Upload file
                 val publicUrl = supabaseDS.uploadFile(
                     bucket = Constants.BUCKET_MEDIA,
                     storagePath = item.storagePath,
@@ -61,28 +61,27 @@ class UploadRepositoryImpl @Inject constructor(
                 )
 
                 if (publicUrl == null) {
-                    // Retry count badhao
                     val nextRetry = System.currentTimeMillis() + getBackoffDelay(item.retryCount)
                     mediaQueueDao.incrementRetry(item.id, "Upload failed", nextRetry)
                     return@withContext AppResult.Error(ErrorType.NETWORK, "Upload failed")
                 }
 
-                // DB mein entry
+                // Insert media row
                 val request = MediaUploadRequest(
                     deviceKey = item.deviceKey,
                     mediaType = item.mediaType,
                     storagePath = item.storagePath,
+                    publicUrl = publicUrl,
                     fileSize = item.fileSize,
                     durationSeconds = item.durationSeconds,
                     createdAt = getCurrentTimestamp()
                 )
 
-                val mediaFile = supabaseDS.insertMedia(request)
+                // ⭐ Yahan change — publicUrl pass kar
+                val mediaFile = supabaseDS.insertMedia(request, publicUrl)
 
-                // Local file delete karo
                 try { file.delete() } catch (_: Exception) {}
 
-                // Queue se remove karo
                 mediaQueueDao.deleteById(item.id)
 
                 Logger.i("UploadRepo", "Queue item processed: ${item.storagePath}")
@@ -99,7 +98,6 @@ class UploadRepositoryImpl @Inject constructor(
                 )
             } catch (e: Exception) {
                 Logger.e("UploadRepo", "processQueueItem failed", e)
-                // Retry badhao
                 val nextRetry = System.currentTimeMillis() + getBackoffDelay(item.retryCount)
                 mediaQueueDao.incrementRetry(item.id, e.message ?: "Unknown", nextRetry)
                 AppResult.Error(ErrorType.UNKNOWN, e.message ?: "Error", e)
@@ -131,20 +129,13 @@ class UploadRepositoryImpl @Inject constructor(
 
     override fun observeQueueCount(): Flow<Int> = mediaQueueDao.observeCount()
 
-    // ============================================
-    // HELPERS
-    // ============================================
-
-    /**
-     * Exponential backoff — retry delay.
-     */
     private fun getBackoffDelay(retryCount: Int): Long {
         return when (retryCount) {
-            0 -> 5_000L        // 5 sec
-            1 -> 30_000L       // 30 sec
-            2 -> 120_000L      // 2 min
-            3 -> 300_000L      // 5 min
-            else -> 600_000L   // 10 min
+            0 -> 5_000L
+            1 -> 30_000L
+            2 -> 120_000L
+            3 -> 300_000L
+            else -> 600_000L
         }
     }
 
