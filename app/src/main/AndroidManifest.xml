@@ -2,8 +2,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- ==================== PERMISSIONS ==================== -->
-
     <!-- Network -->
     <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
@@ -23,7 +21,6 @@
 
     <!-- Foreground Services -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION"/>
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CAMERA"/>
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE"/>
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION"/>
@@ -55,8 +52,6 @@
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
         android:maxSdkVersion="28"/>
 
-    <!-- ==================== APPLICATION ==================== -->
-
     <application
         android:name=".App"
         android:allowBackup="false"
@@ -71,8 +66,7 @@
         android:enableOnBackInvokedCallback="true"
         tools:targetApi="34">
 
-        <!-- ==================== ACTIVITIES ==================== -->
-
+        <!-- ACTIVITIES -->
         <activity
             android:name=".ui.MainActivity"
             android:exported="true"
@@ -95,34 +89,12 @@
             android:exported="false"
             android:theme="@style/Theme.ScreenGuard"/>
 
-        <activity
-            android:name=".ui.MediaProjectionActivity"
-            android:exported="false"
-            android:excludeFromRecents="true"
-            android:launchMode="singleTop"
-            android:theme="@style/Theme.ScreenGuard.Transparent"/>
-
-        <!-- ==================== SERVICES ==================== -->
-
+        <!-- SERVICES -->
         <service
             android:name=".services.GuardService"
             android:enabled="true"
             android:exported="false"
-            android:foregroundServiceType="mediaProjection|camera|microphone|location|dataSync"
-            android:stopWithTask="false"/>
-
-        <service
-            android:name=".services.ScreenRecordService"
-            android:enabled="true"
-            android:exported="false"
-            android:foregroundServiceType="mediaProjection"
-            android:stopWithTask="false"/>
-
-        <service
-            android:name=".services.LiveStreamService"
-            android:enabled="true"
-            android:exported="false"
-            android:foregroundServiceType="mediaProjection|camera|microphone"
+            android:foregroundServiceType="camera|microphone|location|dataSync"
             android:stopWithTask="false"/>
 
         <service
@@ -146,8 +118,7 @@
                 android:resource="@xml/accessibility_config"/>
         </service>
 
-        <!-- ==================== RECEIVERS ==================== -->
-
+        <!-- RECEIVERS -->
         <receiver
             android:name=".receivers.BootReceiver"
             android:enabled="true"
@@ -201,7 +172,7 @@
             </intent-filter>
         </receiver>
 
-        <!-- ⭐ DEVICE ADMIN RECEIVER — Ye zaroori hai -->
+        <!-- Device Admin -->
         <receiver
             android:name=".receivers.AdminReceiver"
             android:enabled="true"
@@ -219,8 +190,7 @@
             </intent-filter>
         </receiver>
 
-        <!-- ==================== PROVIDERS ==================== -->
-
+        <!-- PROVIDERS -->
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"
