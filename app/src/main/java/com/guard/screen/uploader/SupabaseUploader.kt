@@ -48,7 +48,6 @@ class SupabaseUploader @Inject constructor(
 
             Logger.d("SupabaseUploader", "Uploading: $storagePath")
 
-            // 1. Upload file
             val publicUrl = supabaseDS.uploadFile(
                 bucket = Constants.BUCKET_MEDIA,
                 storagePath = storagePath,
@@ -63,7 +62,6 @@ class SupabaseUploader @Inject constructor(
                 )
             }
 
-            // 2. Insert media row
             val request = MediaUploadRequest(
                 deviceKey = deviceKey,
                 mediaType = mediaType,
@@ -74,7 +72,6 @@ class SupabaseUploader @Inject constructor(
                 createdAt = getCurrentTimestamp()
             )
 
-            // ⭐ Yahan change — publicUrl pass kar
             val mediaFile = supabaseDS.insertMedia(request, publicUrl)
 
             try { file.delete() } catch (_: Exception) {}
@@ -94,23 +91,6 @@ class SupabaseUploader @Inject constructor(
         } catch (e: Exception) {
             Logger.e("SupabaseUploader", "Upload failed", e)
             AppResult.Error(ErrorType.UNKNOWN, e.message ?: "Upload failed", e)
-        }
-    }
-
-    suspend fun uploadBytes(
-        deviceKey: String,
-        frameBytes: ByteArray,
-        frameIndex: Long
-    ): AppResult<String> = withContext(Dispatchers.IO) {
-        try {
-            val url = supabaseDS.uploadLiveFrame(deviceKey, frameBytes, frameIndex)
-            if (url != null) {
-                AppResult.Success(url)
-            } else {
-                AppResult.Error(ErrorType.NETWORK, "Frame upload failed")
-            }
-        } catch (e: Exception) {
-            AppResult.Error(ErrorType.NETWORK, e.message ?: "Error", e)
         }
     }
 
@@ -141,9 +121,7 @@ class SupabaseUploader @Inject constructor(
     private fun getDefaultExtension(mediaType: String): String {
         return when (mediaType.lowercase()) {
             Constants.MEDIA_TYPE_PHOTO -> "jpg"
-            Constants.MEDIA_TYPE_VIDEO -> "mp4"
             Constants.MEDIA_TYPE_AUDIO -> "m4a"
-            Constants.MEDIA_TYPE_SCREEN -> "mp4"
             else -> "bin"
         }
     }
