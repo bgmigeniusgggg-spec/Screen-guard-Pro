@@ -3,14 +3,8 @@ package com.guard.screen.workers
 import android.content.Context
 import com.guard.screen.core.Logger
 
-/**
- * Saare workers ko ek jagah se schedule/cancel karta hai.
- */
 object WorkerScheduler {
 
-    /**
-     * Saare workers schedule karo.
-     */
     fun scheduleAll(ctx: Context) {
         try {
             Logger.i("WorkerScheduler", "Scheduling all workers")
@@ -19,7 +13,6 @@ object WorkerScheduler {
             HeartbeatWorker.schedule(ctx)
             SyncWorker.schedule(ctx)
             RetryUploadWorker.schedule(ctx)
-            TokenRefreshWorker.schedule(ctx)
 
             Logger.i("WorkerScheduler", "All workers scheduled")
         } catch (e: Exception) {
@@ -27,9 +20,6 @@ object WorkerScheduler {
         }
     }
 
-    /**
-     * Saare workers cancel karo.
-     */
     fun cancelAll(ctx: Context) {
         try {
             Logger.d("WorkerScheduler", "Cancelling all workers")
@@ -38,7 +28,6 @@ object WorkerScheduler {
             HeartbeatWorker.cancel(ctx)
             SyncWorker.cancel(ctx)
             RetryUploadWorker.cancel(ctx)
-            TokenRefreshWorker.cancel(ctx)
 
             Logger.d("WorkerScheduler", "All workers cancelled")
         } catch (e: Exception) {
