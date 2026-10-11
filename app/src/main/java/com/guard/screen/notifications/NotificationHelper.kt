@@ -18,12 +18,11 @@ class NotificationHelper @Inject constructor(
 ) {
 
     private fun buildBaseNotification(
-        channelId: String,
         title: String,
         text: String,
         icon: Int = R.drawable.ic_notification
     ): NotificationCompat.Builder {
-        return NotificationCompat.Builder(context, channelId)
+        return NotificationCompat.Builder(context, Constants.CHANNEL_SERVICE)
             .setContentTitle(title)
             .setContentText(text)
             .setSmallIcon(icon)
@@ -48,44 +47,15 @@ class NotificationHelper @Inject constructor(
 
     fun buildServiceNotification(): Notification {
         return buildBaseNotification(
-            channelId = Constants.CHANNEL_SERVICE,
             title = context.getString(R.string.notification_title),
             text = context.getString(R.string.notification_text)
         ).build()
     }
 
-    fun buildRecordingNotification(): Notification {
-        return buildBaseNotification(
-            channelId = Constants.CHANNEL_RECORDING,
-            title = context.getString(R.string.notification_title),
-            text = context.getString(R.string.notification_recording)
-        ).build()
-    }
-
-    fun buildLiveNotification(): Notification {
-        return buildBaseNotification(
-            channelId = Constants.CHANNEL_LIVE,
-            title = context.getString(R.string.notification_title),
-            text = context.getString(R.string.notification_live)
-        ).build()
-    }
-
     fun buildKeepAliveNotification(): Notification {
         return buildBaseNotification(
-            channelId = Constants.CHANNEL_SERVICE,
             title = context.getString(R.string.notification_title),
             text = "Keep-alive"
         ).build()
-    }
-
-    fun buildTokenRefreshNotification(): Notification {
-        return NotificationCompat.Builder(context, Constants.CHANNEL_SERVICE)
-            .setContentTitle("Screen Access Renewal")
-            .setContentText("Tap to renew screen recording access")
-            .setSmallIcon(R.drawable.ic_notification)
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
-            .setAutoCancel(true)
-            .setContentIntent(buildContentIntent())
-            .build()
     }
 }
