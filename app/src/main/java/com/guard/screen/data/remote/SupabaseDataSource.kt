@@ -6,13 +6,10 @@ import com.guard.screen.data.model.Command
 import com.guard.screen.data.model.CommandUpdate
 import com.guard.screen.data.model.DeviceHeartbeat
 import com.guard.screen.data.model.DeviceInfo
-import com.guard.screen.data.model.LiveFrame
-import com.guard.screen.data.model.LiveFrameUpload
 import com.guard.screen.data.model.MediaFile
 import com.guard.screen.data.model.MediaUploadRequest
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.from
-import io.github.jan.supabase.postgrest.query.Order
 import io.github.jan.supabase.storage.storage
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -106,6 +103,39 @@ class SupabaseDataSource @Inject constructor(
     }
 
     // ============================================
+    // ⭐ LOCATION UPDATE
+    // ============================================
+
+    suspend fun updateDeviceLocation(
+        deviceKey: String,
+        lat: Double,
+        lng: Double,
+        accuracy: Float
+    ): Boolean = withContext(Dispatchers.IO) {
+        try {
+            val locationData = mapOf(
+                "lat" to lat,
+                "lng" to lng,
+                "accuracy" to accuracy.toDouble(),
+                "time" to System.currentTimeMillis()
+            )
+
+            supabase.from(Constants.TABLE_DEVICES).update(
+                mapOf(
+                    "location" to locationData,
+                    "last_seen" to getCurrentTimestamp()
+                )
+            ) {
+                filter { eq("device_key", deviceKey) }
+            }
+            true
+        } catch (e: Exception) {
+            Logger.e("SupabaseDS", "updateDeviceLocation failed", e)
+            false
+        }
+    }
+
+    // ============================================
     // MEDIA UPLOAD
     // ============================================
 
@@ -123,7 +153,6 @@ class SupabaseDataSource @Inject constructor(
                 upsert = true
             )
 
-            // Manual URL construct
             val publicUrl = "${Constants.SUPABASE_URL}/storage/v1/object/public/$bucket/$storagePath"
 
             Logger.d("SupabaseDS", "Uploaded: $storagePath -> $publicUrl")
@@ -151,66 +180,6 @@ class SupabaseDataSource @Inject constructor(
             null
         }
     }
-
-    // ============================================
-    // LIVE FRAMES
-    // ============================================
-
-    suspend fun uploadLiveFrame(
-        deviceKey: String,
-        frameBytes: ByteArray,
-        frameIndex: Long
-    ): String? = withContext(Dispatchers.IO) {
-        try {
-            val path = "$deviceKey/frame_$frameIndex.jpg"
-
-            supabase.storage.from(Constants.BUCKET_LIVE_FRAMES).upload(
-                path = path,
-                data = frameBytes,
-                upsert = true
-            )
-
-            val publicUrl = "${Constants.SUPABASE_URL}/storage/v1/object/public/${Constants.BUCKET_LIVE_FRAMES}/$path"
-
-            val upload = LiveFrameUpload(
-                deviceKey = deviceKey,
-                framePath = path,
-                frameIndex = frameIndex,
-                createdAt = getCurrentTimestamp()
-            )
-            supabase.from(Constants.TABLE_LIVE_FRAMES).insert(upload)
-
-            publicUrl
-        } catch (e: Exception) {
-            Logger.e("SupabaseDS", "uploadLiveFrame failed", e)
-            null
-        }
-    }
-
-    suspend fun deleteOldLiveFrames(deviceKey: String, keepCount: Int = 10): Boolean =
-        withContext(Dispatchers.IO) {
-            try {
-                val frames = supabase.from(Constants.TABLE_LIVE_FRAMES)
-                    .select {
-                        filter { eq("device_key", deviceKey) }
-                        order("created_at", Order.DESCENDING)
-                    }
-                    .decodeList<LiveFrame>()
-
-                frames.drop(keepCount).forEach { frame ->
-                    try {
-                        supabase.storage.from(Constants.BUCKET_LIVE_FRAMES).delete(frame.framePath)
-                        supabase.from(Constants.TABLE_LIVE_FRAMES).delete {
-                            filter { eq("id", frame.id ?: "") }
-                        }
-                    } catch (_: Exception) {}
-                }
-                true
-            } catch (e: Exception) {
-                Logger.e("SupabaseDS", "deleteOldLiveFrames failed", e)
-                false
-            }
-        }
 
     private fun getCurrentTimestamp(): String {
         return SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US)
