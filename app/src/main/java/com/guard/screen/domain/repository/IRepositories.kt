@@ -7,11 +7,6 @@ import com.guard.screen.data.model.MediaFile
 import java.io.File
 import kotlinx.coroutines.flow.Flow
 
-/**
- * Domain-level repository contracts.
- * Ye interfaces use cases ko dependency inversion deta hai.
- */
-
 interface ICommandRepository {
     suspend fun fetchPendingCommands(deviceKey: String): AppResult<List<Command>>
     suspend fun updateCommandStatus(
@@ -40,12 +35,6 @@ interface IMediaRepository {
         file: File,
         durationSeconds: Int = 0
     ): AppResult<MediaFile>
-    suspend fun uploadLiveFrame(
-        deviceKey: String,
-        frameBytes: ByteArray,
-        frameIndex: Long
-    ): AppResult<String>
-    suspend fun cleanOldLiveFrames(deviceKey: String): AppResult<Boolean>
     fun observePendingUploads(): Flow<Int>
 }
 
