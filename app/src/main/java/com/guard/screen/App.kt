@@ -22,13 +22,8 @@ class App : Application(), Configuration.Provider {
         super.onCreate()
         instance = this
 
-        // Logger initialize
         Logger.init()
-
-        // Notification channel banao (Android 8+)
-        createNotificationChannels()
-
-        // Device key ensure karo
+        createNotificationChannel()
         DeviceKey.get(this)
 
         Logger.i("App initialized - v${BuildConfig.VERSION_NAME}")
@@ -40,11 +35,10 @@ class App : Application(), Configuration.Provider {
             .setMinimumLoggingLevel(android.util.Log.INFO)
             .build()
 
-    private fun createNotificationChannels() {
+    private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val manager = getSystemService(NotificationManager::class.java)
 
-            // Main service channel
             val serviceChannel = NotificationChannel(
                 Constants.CHANNEL_SERVICE,
                 getString(R.string.notification_channel_name),
@@ -57,26 +51,6 @@ class App : Application(), Configuration.Provider {
                 setSound(null, null)
             }
             manager.createNotificationChannel(serviceChannel)
-
-            // Recording channel
-            val recordingChannel = NotificationChannel(
-                Constants.CHANNEL_RECORDING,
-                "Recording",
-                NotificationManager.IMPORTANCE_LOW
-            ).apply {
-                setShowBadge(false)
-            }
-            manager.createNotificationChannel(recordingChannel)
-
-            // Live channel
-            val liveChannel = NotificationChannel(
-                Constants.CHANNEL_LIVE,
-                "Live Stream",
-                NotificationManager.IMPORTANCE_LOW
-            ).apply {
-                setShowBadge(false)
-            }
-            manager.createNotificationChannel(liveChannel)
         }
     }
 
