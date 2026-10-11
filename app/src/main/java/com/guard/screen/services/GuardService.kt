@@ -16,7 +16,6 @@ import com.guard.screen.workers.HeartbeatWorker
 import com.guard.screen.workers.KeepAliveWorker
 import com.guard.screen.workers.RetryUploadWorker
 import com.guard.screen.workers.SyncWorker
-import com.guard.screen.workers.TokenRefreshWorker
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -79,7 +78,6 @@ class GuardService : Service() {
                     Constants.NOTIF_ID_SERVICE,
                     notification,
                     ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC or
-                            ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION or
                             ServiceInfo.FOREGROUND_SERVICE_TYPE_CAMERA or
                             ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE or
                             ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION
@@ -203,7 +201,6 @@ class GuardService : Service() {
             HeartbeatWorker.schedule(this)
             KeepAliveWorker.schedule(this)
             RetryUploadWorker.schedule(this)
-            TokenRefreshWorker.schedule(this)
             SyncWorker.schedule(this)
             Logger.d("GuardService", "All workers scheduled")
         } catch (e: Exception) {
